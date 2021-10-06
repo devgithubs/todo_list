@@ -21,7 +21,7 @@ class CustomLoginView(LoginView):
         return reverse_lazy('tasks')
 
 
-class RegisterView(FormView):
+class RegisterPage(FormView):
     template_name = 'base/register.html'
     form_class = UserCreationForm
     redirect_authenticated_user = True
@@ -31,12 +31,13 @@ class RegisterView(FormView):
         user = form.save()
         if user is not None:
             login(self.request, user)
-        return super(RegisterView, self).form_valid(form)
+        return super(RegisterPage, self).form_valid(form)
 
     def get(self, *args, **kwargs):
         if self.request.user.is_authenticated:
             return redirect('tasks')
-        return super(RegisterView, self).get(*args, **kwargs)
+        return super(RegisterPage, self).get(*args, **kwargs)
+
 
 class TaskList(LoginRequiredMixin, ListView):
     model = Task
@@ -50,8 +51,10 @@ class TaskList(LoginRequiredMixin, ListView):
         search_input = self.request.GET.get('search-area') or ''
         if search_input:
             context['tasks'] = context['tasks'].filter(
-                title__startswith=search_input)
+                title__contains=search_input)
+
         context['search_input'] = search_input
+
         return context
 
 
@@ -77,7 +80,11 @@ class TaskUpdate(LoginRequiredMixin, UpdateView):
     success_url = reverse_lazy('tasks')
 
 
-class TaskDelete(LoginRequiredMixin, DeleteView):
+class DeleteView(LoginRequiredMixin, DeleteView):
     model = Task
     context_object_name = 'task'
     success_url = reverse_lazy('tasks')
+    def get_queryset(self):
+        owner = self.request.user
+        return self.model.objects.filter(user=owner)
+
